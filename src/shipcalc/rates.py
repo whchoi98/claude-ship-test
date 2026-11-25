@@ -8,6 +8,7 @@ WEIGHT_TIERS = [
     (5.0, 4000),
     (10.0, 6000),
     (20.0, 9000),
+    (30.0, 13000),
 ]
 
 REMOTE_REGIONS = frozenset({"jeju", "ulleung"})
