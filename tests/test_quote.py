@@ -45,6 +45,16 @@ def test_weight_on_a_tier_limit_stays_in_that_tier(items, shipping):
     assert quote(items).shipping == shipping
 
 
+def test_very_light_item_is_priced_in_the_lowest_tier():
+    # the summed weight must not shrink to zero on the way to the fee table
+    assert quote([Item("seed", 1000, 1, 0.0000004)]).shipping == 3000
+
+
+def test_parcel_just_over_the_weight_limit_is_rejected():
+    with pytest.raises(OverweightError):
+        quote([Item("anvil", 1000, 1, 30.0000004)])
+
+
 def test_remote_region_adds_the_surcharge():
     assert quote([BOOK], region="Ulleung").shipping == 6000
 
@@ -100,7 +110,19 @@ def test_remote_surcharge_is_charged_when_the_base_fee_is_waived(items, coupon):
     assert quote(items, region="jeju", coupon=coupon).shipping == 3000
 
 
-@pytest.mark.parametrize("coupon", ["save10", "HALFOFF", ""])
+@pytest.mark.parametrize("coupon", ["save10", "Save10", " SAVE10 ", "\tsave10\n"])
+def test_save10_code_ignores_case_and_surrounding_whitespace(coupon):
+    result = quote([BOOK, MUGS], coupon=coupon)
+    assert result.discount == 2000
+    assert result.total == 21000
+
+
+@pytest.mark.parametrize("coupon", ["freeship", " FreeShip "])
+def test_freeship_code_ignores_case_and_surrounding_whitespace(coupon):
+    assert quote([BOOK], coupon=coupon).shipping == 0
+
+
+@pytest.mark.parametrize("coupon", ["HALFOFF", "SAVE 10", "", "   ", 10])
 def test_unknown_coupon_is_rejected(coupon):
     with pytest.raises(ValueError, match="coupon"):
         quote([BOOK], coupon=coupon)

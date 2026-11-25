@@ -11,9 +11,6 @@ from shipcalc.rates import base_fee, shipping_fee
 FREE_SHIPPING_MIN = 50000
 SAVE10_MAX_DISCOUNT = 5000
 VALID_DAYS = 7
-# Weights are summed as floats, so 0.2 + 3 * 1.6 comes out a hair above 5.0.
-# Rounding the sum keeps a parcel that weighs exactly a tier limit in that tier.
-WEIGHT_DECIMALS = 6
 
 
 @dataclass(frozen=True)
@@ -46,12 +43,21 @@ def _check_item(item: Item) -> None:
         raise ValueError(f"{item.name}: weight must be positive")
 
 
+def _normalize_coupon(coupon: str | None) -> str | None:
+    """Return the code as the rules spell it: upper case, no surrounding whitespace."""
+    if coupon is None:
+        return None
+    if not isinstance(coupon, str):
+        raise ValueError(f"unknown coupon: {coupon!r}")
+    return coupon.strip().upper()
+
+
 def _coupon_discount(subtotal: int, coupon: str | None) -> int:
     """Return the amount that ``coupon`` takes off ``subtotal``.
 
     ``SAVE10`` is 10% of the subtotal, rounded down to a multiple of 10 KRW and never
-    more than 5,000. ``FREESHIP`` only changes the shipping fee. Codes are matched
-    exactly as given, and an unknown code raises ``ValueError``.
+    more than 5,000. ``FREESHIP`` only changes the shipping fee. ``coupon`` is a code
+    from ``_normalize_coupon``, and an unknown code raises ``ValueError``.
     """
     if coupon is None or coupon == "FREESHIP":
         return 0
@@ -68,10 +74,11 @@ def quote(
 ) -> Quote:
     """Price an order. All items ship together as one parcel.
 
-    The base shipping fee is waived by the ``FREESHIP`` coupon and when the subtotal
-    after the discount is 50,000 or more. The remote-area surcharge is still charged in
-    both cases. The quote is valid for 7 days from ``today``, which defaults to the
-    current date in UTC.
+    A coupon code counts whatever its case and the whitespace around it. The base
+    shipping fee is waived by the ``FREESHIP`` coupon and when the subtotal after the
+    discount is 50,000 or more. The remote-area surcharge is still charged in both
+    cases. The quote is valid for 7 days from ``today``, which defaults to the current
+    date in UTC.
     """
     items = list(items)
     if not items:
@@ -80,7 +87,8 @@ def quote(
         _check_item(item)
 
     subtotal = sum(item.unit_price * item.quantity for item in items)
-    weight = round(sum(item.weight_kg * item.quantity for item in items), WEIGHT_DECIMALS)
+    weight = sum(item.weight_kg * item.quantity for item in items)
+    coupon = _normalize_coupon(coupon)
     discount = _coupon_discount(subtotal, coupon)
 
     base = base_fee(weight)

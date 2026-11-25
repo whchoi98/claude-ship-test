@@ -36,7 +36,8 @@ and the date until which the quote is valid.
   `weight_kg × quantity`; all items ship as one parcel.
 - (b) An empty item list, a quantity below 1, a negative price, or a non-positive weight
   raises `ValueError`.
-- (c) Coupons are matched exactly as given (`SAVE10` is valid, `save10` is not).
+- (c) Coupon codes are matched without regard to case or surrounding whitespace
+  (`save10` and ` SAVE10 ` both count as `SAVE10`).
   - `SAVE10`: 10% off the subtotal, rounded down to a multiple of 10 KRW, and never more
     than 5,000.
   - `FREESHIP`: the base shipping fee is waived.
