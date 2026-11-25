@@ -12,7 +12,8 @@ All amounts are in KRW.
 | up to 2 kg | 3,000 |
 | up to 5 kg | 4,000 |
 | up to 10 kg | 6,000 |
-| up to 20 kg | 9,000 |
+| up to 20 kg | 9,500 |
+| up to 25 kg | 11,000 |
 | up to 30 kg | 13,000 |
 
 - A parcel heavier than 30 kg is not accepted.
