@@ -1,0 +1,49 @@
+# Reviews a pull request with Claude and posts the findings as pull request
+# comments. It runs when a pull request is opened, reopened, or marked ready
+# for review. A later push does not start a new review.
+#
+# Setup: the repository secret CLAUDE_CODE_OAUTH_TOKEN holds a token made with
+# `claude setup-token`. Runs are charged to that Claude subscription.
+#
+# Comments are posted with the workflow token, so they appear as
+# github-actions[bot] and the Claude GitHub App does not have to be installed.
+#
+# Pull requests from forks are skipped, because GitHub does not pass secrets
+# to them.
+name: Claude Code Review
+
+on:
+  pull_request:
+    types: [opened, ready_for_review, reopened]
+
+permissions: {}
+
+concurrency:
+  group: claude-code-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    if: >-
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      !github.event.pull_request.draft
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      issues: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+      - uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          plugin_marketplaces: "https://github.com/anthropics/claude-plugins-official.git"
+          plugins: "code-review@claude-plugins-official"
+          prompt: "/code-review:code-review --comment ${{ github.repository }}/pull/${{ github.event.pull_request.number }}"
+          # The action starts the server that posts inline comments only when
+          # this tool is named here.
+          claude_args: '--allowedTools "mcp__github_inline_comment__create_inline_comment"'
