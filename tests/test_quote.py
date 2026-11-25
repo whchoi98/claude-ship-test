@@ -32,6 +32,19 @@ def test_items_ship_as_one_parcel():
     assert result.shipping == 4000
 
 
+@pytest.mark.parametrize(
+    ("items", "shipping"),
+    [
+        # 0.2 + 3 x 1.6 is exactly 5 kg, but the float sum is 5.000000000000001
+        ([Item("tea", 1000, 1, 0.2), Item("rice", 1000, 3, 1.6)], 4000),
+        # 0.3 + 3 x 9.9 is exactly 30 kg, the heaviest parcel that is accepted
+        ([Item("cable", 1000, 1, 0.3), Item("plate", 1000, 3, 9.9)], 13000),
+    ],
+)
+def test_weight_on_a_tier_limit_stays_in_that_tier(items, shipping):
+    assert quote(items).shipping == shipping
+
+
 def test_remote_region_adds_the_surcharge():
     assert quote([BOOK], region="Ulleung").shipping == 6000
 
@@ -48,11 +61,25 @@ def test_save10_discount_is_capped():
     assert result.total == 75000
 
 
+def test_save10_discount_is_rounded_down_to_ten_won():
+    # 10% of 3,750 is 375, which rounds down to 370
+    result = quote([Item("pen", unit_price=1250, quantity=3, weight_kg=0.1)], coupon="SAVE10")
+    assert result.discount == 370
+    assert result.total == 6380
+
+
 def test_freeship_waives_the_base_fee():
     result = quote([BOOK], coupon="FREESHIP")
     assert result.discount == 0
     assert result.shipping == 0
     assert result.total == 12000
+
+
+@pytest.mark.parametrize(("region", "shipping"), [("mainland", 0), ("jeju", 3000)])
+def test_freeship_on_a_free_shipping_order_waives_the_base_fee_once(region, shipping):
+    result = quote([DESK], region=region, coupon="FREESHIP")
+    assert result.shipping == shipping
+    assert result.total == 80000 + shipping
 
 
 @pytest.mark.parametrize(

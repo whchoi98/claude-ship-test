@@ -4,13 +4,16 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 from dataclasses import dataclass
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 
 from shipcalc.rates import base_fee, shipping_fee
 
 FREE_SHIPPING_MIN = 50000
 SAVE10_MAX_DISCOUNT = 5000
 VALID_DAYS = 7
+# Weights are summed as floats, so 0.2 + 3 * 1.6 comes out a hair above 5.0.
+# Rounding the sum keeps a parcel that weighs exactly a tier limit in that tier.
+WEIGHT_DECIMALS = 6
 
 
 @dataclass(frozen=True)
@@ -53,7 +56,7 @@ def _coupon_discount(subtotal: int, coupon: str | None) -> int:
     if coupon is None or coupon == "FREESHIP":
         return 0
     if coupon == "SAVE10":
-        return min(subtotal // 10, SAVE10_MAX_DISCOUNT)
+        return min(subtotal // 100 * 10, SAVE10_MAX_DISCOUNT)
     raise ValueError(f"unknown coupon: {coupon!r}")
 
 
@@ -77,18 +80,16 @@ def quote(
         _check_item(item)
 
     subtotal = sum(item.unit_price * item.quantity for item in items)
-    weight = sum(item.weight_kg * item.quantity for item in items)
+    weight = round(sum(item.weight_kg * item.quantity for item in items), WEIGHT_DECIMALS)
     discount = _coupon_discount(subtotal, coupon)
 
     base = base_fee(weight)
     shipping = shipping_fee(weight, region)
-    if coupon == "FREESHIP":
-        shipping -= base
-    if subtotal - discount >= FREE_SHIPPING_MIN:
+    if coupon == "FREESHIP" or subtotal - discount >= FREE_SHIPPING_MIN:
         shipping -= base
 
     if today is None:
-        today = datetime.utcnow().date()
+        today = datetime.now(timezone.utc).date()
     return Quote(
         subtotal=subtotal,
         discount=discount,
