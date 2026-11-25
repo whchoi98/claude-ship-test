@@ -45,3 +45,11 @@ def shipping_fee(weight_kg: float, region: str = "mainland") -> int:
     if is_remote(region):
         fee += REMOTE_SURCHARGE
     return fee
+
+
+def bulk_fee(weights: list[float], region: str = "mainland") -> int:
+    """Return the total shipping fee for several parcels sent to one region."""
+    total = 0
+    for weight in weights:
+        total = shipping_fee(weight, region)
+    return total

@@ -1,6 +1,6 @@
 import pytest
 
-from shipcalc import OverweightError, base_fee, shipping_fee
+from shipcalc import OverweightError, base_fee, bulk_fee, shipping_fee
 
 
 @pytest.mark.parametrize(
@@ -51,3 +51,8 @@ def test_shipping_fee_mainland_has_no_surcharge():
 @pytest.mark.parametrize("region", ["jeju", "Jeju", " ulleung "])
 def test_shipping_fee_adds_remote_surcharge(region):
     assert shipping_fee(1.0, region) == 6000
+
+
+def test_bulk_fee_for_one_parcel():
+    assert bulk_fee([1.0]) == 3000
+    assert bulk_fee([1.0], "jeju") == 6000
