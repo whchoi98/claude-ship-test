@@ -11,8 +11,10 @@ from shipcalc import OverweightError, base_fee, shipping_fee
         (2.1, 4000),
         (5.0, 4000),
         (10.0, 6000),
-        (10.5, 9000),
-        (20.0, 9000),
+        (10.5, 9500),
+        (20.0, 9500),
+        (20.1, 11000),
+        (25.0, 11000),
     ],
 )
 def test_base_fee_by_tier(weight, fee):
@@ -27,7 +29,7 @@ def test_base_fee_rejects_non_positive_weight(weight):
 
 def test_base_fee_rejects_overweight_parcel():
     with pytest.raises(OverweightError):
-        base_fee(20.1)
+        base_fee(25.1)
 
 
 def test_shipping_fee_mainland_has_no_surcharge():
