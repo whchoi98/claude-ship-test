@@ -15,6 +15,8 @@ from shipcalc import OverweightError, base_fee, shipping_fee
         (20.0, 9500),
         (20.1, 11000),
         (25.0, 11000),
+        (25.5, 13000),
+        (30.0, 13000),
     ],
 )
 def test_base_fee_by_tier(weight, fee):
@@ -29,7 +31,17 @@ def test_base_fee_rejects_non_positive_weight(weight):
 
 def test_base_fee_rejects_overweight_parcel():
     with pytest.raises(OverweightError):
-        base_fee(25.1)
+        base_fee(30.1)
+
+
+def test_base_fee_keeps_a_float_sum_on_a_tier_limit_in_that_tier():
+    # 0.2 + 3 * 1.6 is 5 kg, but the float sum is 5.000000000000001
+    assert base_fee(0.2 + 3 * 1.6) == 4000
+
+
+def test_base_fee_rejects_a_parcel_just_over_the_limit():
+    with pytest.raises(OverweightError):
+        base_fee(30.0000004)
 
 
 def test_shipping_fee_mainland_has_no_surcharge():

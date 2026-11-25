@@ -9,10 +9,15 @@ WEIGHT_TIERS = [
     (10.0, 6000),
     (20.0, 9500),
     (25.0, 11000),
+    (30.0, 13000),
 ]
 
 REMOTE_REGIONS = frozenset({"jeju", "ulleung"})
 REMOTE_SURCHARGE = 3000
+
+# A weight that is a float sum can land a hair above a tier limit (0.2 + 3 * 1.6 is
+# 5.000000000000001), so a parcel within one microgram of a limit stays in that tier.
+WEIGHT_EPSILON = 1e-9
 
 
 class OverweightError(ValueError):
@@ -24,7 +29,7 @@ def base_fee(weight_kg: float) -> int:
     if weight_kg <= 0:
         raise ValueError("weight must be positive")
     for max_weight, fee in WEIGHT_TIERS:
-        if weight_kg <= max_weight:
+        if weight_kg <= max_weight + WEIGHT_EPSILON:
             return fee
     raise OverweightError(f"{weight_kg} kg is over the {WEIGHT_TIERS[-1][0]} kg limit")
 
