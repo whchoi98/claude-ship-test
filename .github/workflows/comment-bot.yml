@@ -1,0 +1,27 @@
+# Lab aid: posts a pull request comment as github-actions[bot].
+# It is used to see how a /ship watch treats a comment written by a bot.
+name: Comment bot
+
+on:
+  workflow_dispatch:
+    inputs:
+      pr:
+        description: Pull request number
+        required: true
+      body:
+        description: Comment text
+        required: true
+
+permissions:
+  pull-requests: write
+
+jobs:
+  comment:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Comment on the pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ inputs.pr }}
+          BODY: ${{ inputs.body }}
+        run: gh pr comment "$PR" --repo "$GITHUB_REPOSITORY" --body "$BODY"
